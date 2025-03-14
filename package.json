@@ -1,0 +1,28 @@
+{
+  "name": "spotya",
+  "version": "1.0.0",
+  "description": "App for convert Spotify music to Yandex music",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack:win": "electron-builder build -w --x64",
+    "pack:linux": "electron-builder build -l --x64",
+    "pack:mac": "electron-builder build -m --x64",
+    "pack": "yarn run pack:win && yarn run pack:linux && yarn run pack:mac"
+  },
+  "author": "Maksim Chingin",
+  "license": "ISC",
+  "devDependencies": {
+    "@electron/fuses": "^1.8.0",
+    "electron": "^34.3.0"
+  },
+  "dependencies": {
+    "@electron/packager": "^18.3.6",
+    "axios": "^1.8.1",
+    "electron-store": "8.2.0",
+    "form-data": "^4.0.2",
+    "spottydl": "umnik1/spottydll",
+    "yandex-music-client": "github:umnik1/yandex-music-client"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

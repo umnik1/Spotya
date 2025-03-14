@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Spotya</title>
+    <!-- UIkit CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.23.1/dist/css/uikit.min.css" />
+
+    <!-- UIkit JS -->
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.1/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.23.1/dist/js/uikit-icons.min.js"></script>
+
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+
+    <style>
+    body {
+      padding: 0 50px;
+    }
+
+    .logo {
+      margin: 20px auto;
+      display: block;
+      margin-bottom: 40px;
+      -webkit-user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .track-info h2, h3 {
+      margin: 0;
+      margin-bottom: 20px;
+    }
+
+    .track-info img {
+      width: 200px;
+      margin-bottom: 20px;
+    }
+
+    .uk-list {
+      max-height: 300px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding-top: 15px;
+      z-index: 9;
+    }
+
+    .uk-alert-danger {
+      z-index: 9;
+    }
+
+    section {
+      width: 100%;
+      background-size: cover;
+      background-attachment: fixed
+    }
+
+    section .wave {
+        bottom: 0;
+        -webkit-animation: waves 10s linear infinite;
+        animation: waves 10s linear infinite
+    }
+
+    section .wave,section .wave:before {
+        position: absolute;
+        width: 100%;
+        height: 100px;
+        left: 0;
+        background: url('wave.svg')
+    }
+
+    section .wave:before {
+        content: "";
+        top: 0;
+        opacity: .4;
+        -webkit-animation: waves-reverse 10s linear infinite;
+        animation: waves-reverse 10s linear infinite
+    }
+
+    section .wave:after {
+        content: "";
+        width: 100%;
+        height: 100px;
+        background: url('wave.svg');
+        position: absolute;
+        top: 0;
+        left: 0;
+        opacity: .6;
+        -webkit-animation-delay: -5s;
+        animation-delay: -5s;
+        -webkit-animation: waves 20s linear infinite;
+        animation: waves 20s linear infinite
+    }
+
+    @-webkit-keyframes waves {
+        0% {
+            background-position: 0
+        }
+
+        to {
+            background-position: 1600px
+        }
+    }
+
+    @keyframes waves {
+        0% {
+            background-position: 0
+        }
+
+        to {
+            background-position: 1600px
+        }
+    }
+
+    @-webkit-keyframes waves-reverse {
+        0% {
+            background-position: 1600px
+        }
+
+        to {
+            background-position: 0
+        }
+    }
+
+    @keyframes waves-reverse {
+        0% {
+            background-position: 1600px
+        }
+
+        to {
+            background-position: 0
+        }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <renderer></renderer>
+</div>
+
+<script type="text/x-template" id="renderer-template">
+  <div class="container">
+    <img class="logo" src="https://spotya.ru/logo.png">
+    <div class="uk-child-width-1-1" uk-grid>
+      <div>
+        <form v-if="!trackInfo" class="uk-form-horizontal uk-margin-large">
+          <div class="uk-margin">
+            <label class="uk-form-label" for="form-horizontal-text">Spotify ссылка на Трек/Альбом/Плейлист</label>
+            <div class="uk-form-controls">
+              <input class="uk-input" v-model="spotifyLink" type="text" placeholder="https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT">
+            </div>
+          </div>
+
+          <div class="uk-margin">
+            <div class="uk-form-label">Выберите тип</div>
+            <div class="uk-form-controls uk-form-controls-text">
+              <label><input class="uk-radio" type="radio" value="track" v-model="selectedType" /> Отдельный трек</label><br>
+              <label><input class="uk-radio" type="radio" value="album" v-model="selectedType" /> Альбом</label><br>
+              <label><input class="uk-radio" type="radio" value="playlist" v-model="selectedType" /> Плейлист</label>
+            </div>
+          </div>
+
+          <div class="uk-margin">
+              <select v-model="playlist" id="userPlaylists" class="uk-select" aria-label="Custom controls">
+                <option v-if="selectedType !== 'track'" value="new">+ Создать новый плейлист</option>
+                <option v-for="playlist in userPlaylists" :key="playlist.kind" :value="playlist.kind">{{ playlist.title }}</option>
+              </select>
+          </div>
+
+          <button @click="uploadTracks" ref="uploadBtn" class="uk-button">Загрузить треки в Яндекс.Музыку</button>
+        </form>
+      </div>
+      <div v-if="trackInfo" class="track-info">
+        <div class="uk-child-width-1-2" uk-grid>
+          <div class="uk-card uk-card-secondary uk-card-body uk-text-center">
+            <img :src="trackInfo.albumCoverURL ? trackInfo.albumCoverURL : trackInfo.playlistCoverURL" alt="Album Cover">
+            <h2 v-if="trackInfo.title" class="track-title uk-card-title">{{ trackInfo.title }}</h2>
+            <h2 v-if="trackInfo.name" class="track-title uk-card-title">{{ trackInfo.name }}</h2>
+            <h3 class="track-artist">{{ trackInfo.artist }}</h3>
+          </div>
+          <div class="uk-overflow-auto">
+              <ul class="uk-list">
+                <li v-for="file in files" :key="file">{{ file }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div id="status" :style="{ color: statusColor, marginTop: '10px' }">
+        <div v-if="statusText == 'Загружаю...'" uk-spinner></div>
+        {{ statusText }}
+        <br>
+        <button v-if="statusText == 'Загрузка завершена!'" @click="retry" class="uk-button uk-button-primary uk-button-small">Импортировать другую ссылку</button>
+      </div>
+      <button v-if="showRelogin" @click="relogin" class="uk-button uk-button-danger">Перезайти</button>
+      <div class="footer">
+        <button @click="donate" class="uk-button uk-button-primary uk-button-small">Поддержать проект</button>
+        <button @click="relogin" class="uk-button uk-button-danger uk-button-small">Перезайти</button>
+      </div>
+    </div>
+    <div class="uk-alert-danger" uk-alert>
+      <a href class="uk-alert-close" uk-close></a>
+      <p>Не забудьте включить VPN.</p>
+    </div>
+    <section><div class="wave"></div></section>
+  </div>
+</script>
+
+<script>
+Vue.component('renderer', {
+  template: '#renderer-template',
+  data() {
+    return {
+      spotifyLink: '',
+      selectedType: 'track',
+      userPlaylists: [],
+      trackInfo: null,
+      statusText: '',
+      statusColor: 'black',
+      playlist: '',
+      showRelogin: false,
+      files: []
+    };
+  },
+  watch: {
+    selectedType(newVal) {
+      if (newVal == 'album' || newVal == 'playlist') {
+        this.playlist = 'new';
+      } else {
+        this.playlist = this.userPlaylists[0].uid;
+      }
+    }
+  },
+  methods: {
+    async uploadTracks() {
+      try {
+        const filename = this.spotifyLink.trim();
+        if (!filename) {
+          this.statusText = 'Вставьте ссылку';
+          this.statusColor = 'red';
+          return;
+        }
+
+        this.$refs.uploadBtn.disabled = true;
+        this.statusText = 'Загружаю...';
+        this.statusColor = 'black';
+
+        const listInterval = setInterval(() => {
+          this.fetchFiles();
+        }, 1000);
+
+        const result = await window.electronAPI.startUpload(filename, this.selectedType, this.playlist);
+        
+        if (result === undefined) {
+          this.statusText = 'Вылезла капча, не можем её решить, нужно повторно выполнить вход и попробовать заново.';
+          this.statusColor = 'red';
+          this.showRelogin = true;
+          clearInterval(listInterval);
+        } else {
+          this.statusText = 'Загрузка завершена!';
+          this.statusColor = 'green';
+          clearInterval(listInterval);
+        }
+        
+
+      } catch (error) {
+        this.statusText = error.message;
+        if (error.message.includes('капча')) {
+          this.showRelogin = true;
+        }
+        this.statusColor = 'red';
+      } finally {
+        this.$refs.uploadBtn.disabled = false;
+      }
+    },
+    async relogin() {
+      await window.electronAPI.relogin();
+    },
+    async donate() {
+      await window.electronAPI.donate();
+    },
+    async fetchPlaylists() {
+      try {
+        const userPlaylists = await window.electronAPI.getUserPlaylists();
+        this.userPlaylists = userPlaylists;
+        if (userPlaylists.length > 0) {
+          this.playlist = userPlaylists[0].kind;
+        }
+      } catch (error) {
+        console.error('Failed to fetch playlists:', error);
+      }
+    },
+
+    async fetchFiles() {
+      try {
+        this.files = await window.electronAPI.getFiles();
+      } catch (error) {
+        console.error('Failed to fetch playlists:', error);
+      }
+    },
+
+    retry() {
+      this.trackInfo = null;
+      this.spotifyLink = '';
+      this.files = [];
+      this.statusText = '';
+    },
+    
+    handleTrackData(track) {
+      this.trackInfo = track;
+    }
+  },
+  mounted() {
+    window.electronAPI.onTrackData((track) => {
+      this.handleTrackData(track);
+    });
+    
+    this.fetchPlaylists();
+  }
+});
+
+new Vue({
+  el: '#app'
+});
+</script>
+
+</body>
+</html>
